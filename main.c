@@ -51,6 +51,7 @@ bool left_mouse_down = false;
 
 // The following callback method is invoked on every keypress.
 CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon) {
+    // Need to keep track of whether mouse button is pressed so that we could ensure dragging works with our fake mouse
     if (type == kCGEventLeftMouseDown) {
         left_mouse_down = true;
         return event;
@@ -60,8 +61,7 @@ CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef e
         return event;
     }
 
-    if (type != kCGEventKeyDown && type != kCGEventKeyUp &&
-        type != kCGEventFlagsChanged) {
+    if (type != kCGEventKeyDown && type != kCGEventKeyUp && type != kCGEventFlagsChanged) {
         return event;
     }
 
@@ -115,9 +115,7 @@ CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef e
             }
         } else {
             if (l1_pressed) {
-                struct timespec curr_time;
-                clock_gettime(CLOCK_MONOTONIC_RAW, &curr_time);
-                printf("l1 released %f\n", diff_timespec(&curr_time, &l1_pressed_at));
+                printf("l1 released\n");
                 l1_pressed = false;
             }
         }
@@ -231,7 +229,7 @@ struct timespec last_loop_at;
 
 double acceleration_period_s = 2;
 double loop_period_s = 0.01;
-double max_step_px_per_s = 2000;
+double max_step_px_per_s = 3000;
 
 CGPoint last_pos;
 
@@ -275,17 +273,11 @@ void mover_thread_run(CFRunLoopTimerRef timer, void *data) {
     if (l2_pressed) {
         double time_delta_s = min(diff_timespec(&curr_loop_at, &l2_pressed_at), diff_timespec(&curr_loop_at, &last_loop_at));
         double speed_factor = ramp(diff_timespec(&curr_loop_at, &l2_pressed_at));
-        // if (l1_pressed) {
-        //     speed_factor = 1.0;
-        // }
         x_delta_px -= speed_factor * max_step_px_per_s * time_delta_s;
     }
     if (r2_pressed) {
         double time_delta_s = min(diff_timespec(&curr_loop_at, &r2_pressed_at), diff_timespec(&curr_loop_at, &last_loop_at));
         double speed_factor = ramp(diff_timespec(&curr_loop_at, &r2_pressed_at));
-        // if (r1_pressed) {
-        //     speed_factor = 1.0;
-        // }
         x_delta_px += speed_factor * max_step_px_per_s * time_delta_s;
     }
     if (d2_pressed) {
